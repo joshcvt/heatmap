@@ -838,6 +838,8 @@ class FileReader():
 class GPXFileReader(FileReader):
     '''GPX track file reader'''
     def read_file(self, filename):
+    	print ("reading " +filename , end="\r")
+    	sys.stdout.flush()
         track = TrackLog(filename)
         for trkseg in track.segments():
             for i, p1 in enumerate(trkseg[:-1]):
@@ -1297,6 +1299,7 @@ def main():
         pickle.dump(matrix, open(args.save, 'wb'), 2)
 
     logging.info('end')
+    print("")
 
 
 if __name__ == '__main__':
