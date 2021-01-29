@@ -779,6 +779,9 @@ def choose_osm_zoom(config, padding):
 
 
 def get_osm_background(config, padding):
+    
+    from PIL import ImageEnhance
+    
     zoom = choose_osm_zoom(config, padding)
     proj = MercatorProjection()
     proj.pixels_per_degree = _scale_for_osm_zoom(zoom)
@@ -798,6 +801,9 @@ def get_osm_background(config, padding):
         int(offset.y),
         int(offset.x + bbox_xy.size().x + 1),
         int(offset.y + bbox_xy.size().y + 1)))
+    if (config.saturation != 1.0):
+        enhancer = ImageEnhance.Color(image)
+        image = enhancer.enhance(config.saturation)
     config.background_image = image
     config.extent_in = bbox_ll
     config.projection = proj
@@ -1096,6 +1102,11 @@ class Configuration(object):
                 'magnitude.  Smaller values are more democratic.  default:'
                 '%(default)s'))
         parser.add_argument(
+            '--saturation', type=float, default=1.0,
+            help=(
+                'Color saturation of background map: <1.0 desaturates, >1.0 supersaturates.  default:'
+                '%(default)s'))
+        parser.add_argument(
             '-S', '--save', metavar='FILE', help='save processed data to FILE')
         parser.add_argument(
             '-L', '--load', metavar='FILE',
@@ -1224,6 +1235,8 @@ class Configuration(object):
         if options.background_image:
             self.background_image = Image.open(options.background_image)
             (self.width, self.height) = self.background_image.size
+        
+        self.saturation = options.saturation
 
     def fill_missing(self):
         if not self.shapes:
