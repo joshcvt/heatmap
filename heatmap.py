@@ -119,13 +119,42 @@ class TrackLog:
                 except KeyError:
                     continue
 
+    def _tcxparse(self, filename):
+    	self._segments = []
+        lat = None
+        lon = None
+        for event, elem in ET.iterparse(filename,('start','end')):
+            elem.tag = elem.tag[elem.tag.rfind('}') + 1:]   # remove namespace
+            if elem.tag == "Track":
+                if event == 'start':
+                    self._segments.append(TrackLog.Trkseg())
+                else: # event == 'end'
+                    yield self._segments.pop()
+                    elem.clear()
+            elif event == 'end':
+                # we're accumulating lat/lon
+                if elem.tag == "LatitudeDegrees":
+                    lat = elem.text
+                elif elem.tag == "LongitudeDegrees":
+                    lon = elem.text
+                elif elem.tag == "Position": # it's done
+                    if (not (lat and lon)):
+                    	raise Exception("What the hell, no latlon after Position")
+                    point = TrackLog.Trkpt(lat,lon)
+                    self._segments[-1].append(point)
+                elif elem.tag == "Trackpoint":
+                    elem.clear()	# we're finished with the whole point, clear mem
+    
     def __init__(self, filename):
         self.filename = filename
 
     def segments(self):
         '''Parse file and yield segments containing points'''
         logging.info('reading GPX track from %s' % self.filename)
-        return self._parse(self.filename)
+        if self.filename[-3:].lower() == 'tcx':
+            return self._tcxparse(self.filename)
+        else:
+            return self._parse(self.filename)
 
 
 class Projection(object):
@@ -812,6 +841,8 @@ class FileReader():
 class GPXFileReader(FileReader):
     '''GPX track file reader'''
     def read_file(self, filename):
+    	print ("reading " +filename , end="\r")
+    	sys.stdout.flush()
         track = TrackLog(filename)
         for trkseg in track.segments():
             for i, p1 in enumerate(trkseg[:-1]):
@@ -912,6 +943,7 @@ class AutoFileReader(FileReader):
     def read_file(self, filename):
         types = {'.shp': ShapeFileReader,
                  '.gpx': GPXFileReader,
+                 '.tcx': GPXFileReader, # handle the distinction internally
                  '.csv': CSVFileReader}
         try:
             _, ext = os.path.splitext(filename)
@@ -993,6 +1025,7 @@ class Configuration(object):
                     'mercator': MercatorProjection, }
     _filetypes = {'plain': PlainFileReader,
                   'gpx': GPXFileReader,
+                  'tcx': GPXFileReader,
                   'csv': CSVFileReader,
                   'shp': ShapeFileReader,
                   'auto': AutoFileReader, }
@@ -1269,6 +1302,7 @@ def main():
         pickle.dump(matrix, open(args.save, 'wb'), 2)
 
     logging.info('end')
+    print("")
 
 
 if __name__ == '__main__':
