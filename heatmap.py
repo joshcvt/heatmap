@@ -120,7 +120,7 @@ class TrackLog:
                     continue
 
     def _tcxparse(self, filename):
-    	self._segments = []
+        self._segments = []
         lat = None
         lon = None
         for event, elem in ET.iterparse(filename,('start','end')):
@@ -139,11 +139,11 @@ class TrackLog:
                     lon = elem.text
                 elif elem.tag == "Position": # it's done
                     if (not (lat and lon)):
-                    	raise Exception("What the hell, no latlon after Position")
+                        raise Exception("What the hell, no latlon after Position")
                     point = TrackLog.Trkpt(lat,lon)
                     self._segments[-1].append(point)
                 elif elem.tag == "Trackpoint":
-                    elem.clear()	# we're finished with the whole point, clear mem
+                    elem.clear()    # we're finished with the whole point, clear mem
     
     def __init__(self, filename):
         self.filename = filename
@@ -721,15 +721,15 @@ class ImageSeriesMaker():
 
 
 def _get_osm_image(bbox, zoom, osm_base):
-    # Just a wrapper for osm.createOSMImage to translate coordinate schemes
+    # Just a wrapper for osm.create_osm_image to translate coordinate schemes
     try:
         from osmviz.manager import PILImageManager, OSMManager
         osm = OSMManager(
             image_manager=PILImageManager('RGB'),
             server=osm_base)
         (c1, c2) = bbox.corners()
-        image, bounds = osm.createOSMImage((c1.lat, c2.lat, c1.lon, c2.lon),
-                                           zoom)
+        image, bounds = osm.create_osm_image((c1.lat, c2.lat, c1.lon, c2.lon),
+                                              zoom)
         (lat1, lat2, lon1, lon2) = bounds
         return image, Extent(coords=(LatLon(lat1, lon1),
                                      LatLon(lat2, lon2)))
@@ -847,8 +847,8 @@ class FileReader():
 class GPXFileReader(FileReader):
     '''GPX track file reader'''
     def read_file(self, filename):
-    	print ("reading " +filename , end="\r")
-    	sys.stdout.flush()
+        print ("reading " +filename , end="\r")
+        sys.stdout.flush()
         track = TrackLog(filename)
         for trkseg in track.segments():
             for i, p1 in enumerate(trkseg[:-1]):
