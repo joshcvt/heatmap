@@ -52,6 +52,14 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
-sr*/*
-*png
-*mpg
+# uv lock file
+uv.lock
+
+# Explicitly untracked
+LOCAL/
+
+# Local working directories and results
+/sr[0-9]*/
+.venv/
+/*.png
+/*.mpg

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # heatmap.py - Generates heat map images and animations from geographic data
 # Copyright 2010 Seth Golub
@@ -16,8 +16,6 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-from __future__ import print_function
 
 import sys
 import logging
@@ -39,7 +37,7 @@ try:
 except ImportError:
     import pickle
 
-__version__ = '1.13'
+__version__ = '1.14'
 
 
 class Coordinate(object):
@@ -113,9 +111,10 @@ class TrackLog:
                     elem.clear()  # delete contents from parse tree
             elif elem.tag == 'trkpt' and event == 'end':
                 try:
-                    point = TrackLog.Trkpt(elem.attrib['lat'], elem.attrib['lon'])
+                    point = TrackLog.Trkpt(elem.attrib['lat'],
+                                           elem.attrib['lon'])
                     self._segments[-1].append(point)
-                    elem.clear()  # clear the trkpt node to minimize memory usage
+                    elem.clear()  # clear trkpt node to minimize memory usage
                 except KeyError:
                     continue
 
@@ -228,7 +227,7 @@ class Projection(object):
                 'You need at least two data points for auto scaling. '
                 'Try specifying the scale explicitly (or extent + '
                 'height or width).')
-        assert(self.pixels_per_degree > 0)
+        assert self.pixels_per_degree > 0
 
 
 # Treats Lat/Lon as a square grid.
@@ -353,7 +352,7 @@ class Matrix(defaultdict):
         raise NotImplementedError
 
     def extent(self):
-        return(Extent(coords=self.keys()))
+        return Extent(coords=self.keys())
 
     def finalized(self):
         return self
@@ -577,17 +576,18 @@ class ColorMap:
             self.values = [image.getpixel((0, row)) for row in range(num_rows)]
             self.values.reverse()
             if self.values[0][3] != 0:
-                logging.warn('In gradient image %s, the bottom-left pixel is '
-                             'not fully transparent. If the output appears '
-                             'blocky, make sure your gradient image '
-                             'transitions to fully transparent at the bottom.'
-                             % os.path.basename(image.filename))
+                logging.warning('In gradient image %s, the bottom-left '
+                                'pixel is not fully transparent. If the '
+                                'output appears blocky, make sure your '
+                                'gradient image transitions to fully '
+                                'transparent at the bottom.'
+                                % os.path.basename(image.filename))
             if self.values[-1][3] != 255:
-                logging.warn('In gradient image %s, the top-left pixel is '
-                             'not fully opaque. If the output appears '
-                             'dim, try increasing the opacity of the '
-                             'upper region of your gradient image.'
-                             % os.path.basename(image.filename))
+                logging.warning('In gradient image %s, the top-left pixel is '
+                                'not fully opaque. If the output appears '
+                                'dim, try increasing the opacity of the '
+                                'upper region of your gradient image.'
+                                % os.path.basename(image.filename))
         else:
             if not hsva_min:
                 hsva_min = ColorMap.str_to_hsva(self.DEFAULT_HSVA_MIN_STR)
@@ -610,7 +610,7 @@ class ColorMap:
         try:
             return self.values[int(floatval * (len(self.values) - 1))]
         except IndexError:
-            return self.values[0 if floatval<0 else -1]
+            return self.values[0 if floatval < 0 else -1]
 
 
 class ImageMaker():
@@ -659,7 +659,8 @@ class ImageMaker():
             x = int(coord.x - extent.min.x)
             y = int(coord.y - extent.min.y)
             if extent.is_inside(coord):
-                color = self.config.colormap.get(val / maxval) if maxval > 0 else self.config.colormap.get(0)
+                color = self.config.colormap.get(val / maxval) \
+                        if maxval > 0 else self.config.colormap.get(0)
                 if self.background:
                     pixels[x, y] = ImageMaker._blend_pixels(color,
                                                             self.background)
@@ -720,16 +721,20 @@ class ImageSeriesMaker():
         return matrix
 
 
-def _get_osm_image(bbox, zoom, osm_base):
+def _get_osm_image(bbox, zoom, osm_base, osm_path_template):
     # Just a wrapper for osm.create_osm_image to translate coordinate schemes
     try:
         from osmviz.manager import PILImageManager, OSMManager
+        if not (osm_base.endswith('/') or osm_path_template.startswith('/')):
+            logging.warning(f'OSM URL path template {osm_path_template} '
+                            'probably needs a / at the beginning.')
         osm = OSMManager(
             image_manager=PILImageManager('RGB'),
-            server=osm_base)
+            server=osm_base,
+            url=osm_base + osm_path_template)
         (c1, c2) = bbox.corners()
         image, bounds = osm.create_osm_image((c1.lat, c2.lat, c1.lon, c2.lon),
-                                              zoom)
+                                             zoom)
         (lat1, lat2, lon1, lon2) = bounds
         return image, Extent(coords=(LatLon(lat1, lon1),
                                      LatLon(lat2, lon2)))
@@ -737,7 +742,7 @@ def _get_osm_image(bbox, zoom, osm_base):
         logging.error(
             "ImportError: %s.\n"
             "The --osm option depends on the osmviz module, available from\n"
-            "http://cbick.github.com/osmviz/\n\n" % str(e))
+            "https://github.com/hugovk/osmviz\n\n" % str(e))
         sys.exit(1)
 
 
@@ -789,7 +794,8 @@ def get_osm_background(config, padding):
     # We're not checking that the padding fits within the specified size.
     bbox_xy.grow(padding)
     bbox_ll = bbox_xy.map(proj.inverse_project)
-    image, img_bbox_ll = _get_osm_image(bbox_ll, zoom, config.osm_base)
+    image, img_bbox_ll = _get_osm_image(bbox_ll, zoom, config.osm_base,
+                                        config.osm_path_template)
     img_bbox_xy = img_bbox_ll.map(proj.project)
 
     # TODO: this crops to our data extent, which means we're not making
@@ -809,6 +815,22 @@ def get_osm_background(config, padding):
     config.projection = proj
     (config.width, config.height) = image.size
     return image, bbox_ll, proj
+
+
+def value_invert_image(im):
+    '''
+    Invert just the Value of an image, leaving Hue,
+    Saturation, and Alpha intact.
+    '''
+    alpha = im.getchannel('A') if 'A' in im.getbands() else None
+    hsv = im.convert(mode='HSV')
+    (h, s, v) = hsv.split()
+    v = v.point(lambda x: 255 - x)
+    hsv = Image.merge('HSV', (h, s, v))
+    rgba = hsv.convert(mode='RGBA')
+    if alpha:
+        rgba.putalpha(alpha)
+    return rgba
 
 
 def process_shapes(config, hook=None):
@@ -841,7 +863,7 @@ class FileReader():
     def read_file(self, filename):
         '''a simple file opener, for simple subclasses'''
         logging.info('reading from %s' % filename)
-        return self.parse(open(filename, 'rU'))
+        return self.parse(open(filename, 'r'))
 
 
 class GPXFileReader(FileReader):
@@ -974,9 +996,9 @@ class Configuration(object):
     Configuration object is populated with the specified values and
     defaults.
 
-    In the second phase, various other parameters are computed.  These
-    are things we set automatically based on the other settings or on
-    the data.  You can skip this if you set everything manually, but
+    In the second phase, fill_missing(), various other parameters are
+    computed.  These are things we set automatically based on the other
+    settings or on the data.
 
     The idea is that someone could import this module, populate a
     Configuration instance manually, and run the process themselves.
@@ -1007,10 +1029,13 @@ class Configuration(object):
         'background': '',
         'background_image': '',
         'background_brightness': '',
+        'invert_background': '',
+        'background_transformer': 'function to apply to background image',
 
         # OpenStreetMap background tiles
         'osm': 'True/False; see command line options',
         'osm_base': '',
+        'osm_path_template': '',
         'zoom': '',
 
         # These are for making an animation, ignored otherwise.
@@ -1139,6 +1164,9 @@ class Configuration(object):
             '-B', '--background_brightness', type=float,
             help='Multiply each pixel in background image by this.')
         parser.add_argument(
+            '-N', '--invert_background', action='store_true',
+            help='Value-invert the background image. (Cannot be used with -B)')
+        parser.add_argument(
             '-m', '--hsva_min', metavar='HEX',
             default=ColorMap.DEFAULT_HSVA_MIN_STR,
             help='hhhssvvaa hex for minimum data values; default: %(default)s')
@@ -1165,8 +1193,12 @@ class Configuration(object):
             default='http://tile.openstreetmap.org',
             help='Base URL for map tiles; default %(default)s')
         parser.add_argument(
-            '-z', '--zoom', type=int,
-            help='Zoom level for OSM; 0 (the default) means autozoom')
+            '--osm_path_template', metavar='TEMPLATE',
+            default='/{z}/{x}/{y}.png',
+            help='URL path template for map tiles; default %(default)s')
+        parser.add_argument(
+            '-z', '--zoom', type=int, default=0,
+            help='Zoom level for OSM; 0 means autozoom.')
         parser.add_argument('-v', '--verbose', action='store_true')
         parser.add_argument('--debug', action='store_true')
         parser.add_argument('--version', action='version',
@@ -1183,7 +1215,7 @@ class Configuration(object):
         for flag, filetype in flag_to_filetype.items():
             filename = getattr(options, flag)
             if filename:
-                logging.warn(
+                logging.warning(
                     '--%s is deprecated; now you can just put the input file '
                     'at the end of the command line. This legacy support '
                     'will be removed someday.' % flag)
@@ -1260,14 +1292,21 @@ class Configuration(object):
                                      'scale or background_image or both osm '
                                      'and zoom.')
 
-        if self.background_brightness is not None:
+        if self.invert_background:
+            self.background_transformer = value_invert_image
+        elif self.background_brightness is not None:
+            def _brightness(image):
+                return image.point(lambda x:
+                                   int(x * self.background_brightness))
+            self.background_transformer = _brightness
+
+        if self.background_transformer:
             if self.background_image:
-                self.background_image = self.background_image.point(
-                    lambda x: x * self.background_brightness)
-                self.background_brightness = None   # idempotence
+                self.background_image = \
+                    self.background_transformer(self.background_image)
             else:
                 logging.warning(
-                    'background brightness specified, but no background image')
+                    'background transform specified, but no background image')
 
         if not self.extent_out:
             self.extent_out = self.extent_in.map(self.projection.project)

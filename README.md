@@ -1,4 +1,14 @@
-# heatmap
+# heatmap77
+
+## how?
+
+    pip install heatmap77
+    heatmap77 -h
+    heatmap77 -o out.png --height 800 -b black points.csv   # example 1
+    heatmap77 -o out.png --height 800 --osm track.gpx       # example 2
+
+See [my website](http://sethoscope.net/heatmap/) for more examples.
+
 
 ## why?
 
@@ -34,12 +44,13 @@ A more thorough description and examples are posted at
 ## change to command line
 
 As of version 1.13 (April 2017), the method of specifying input files
-has changed. The old way will continue to be supported for at least
-one year, but the new way is nicer.
+has changed. The old way is still supported for now, but the new way is nicer.
 Read [this tutorial](CMDLINE_UPDATING.md) for examples and help on
-switching to the new way.
+switching your old scripts to the new way.
 
-## Tests
+## name change
 
-[![Build Status](https://travis-ci.org/sethoscope/heatmap.svg?branch=master)](https://travis-ci.org/sethoscope/heatmap)
-[![Coverage Status](https://coveralls.io/repos/github/sethoscope/heatmap/badge.svg?branch=master)](https://coveralls.io/github/sethoscope/heatmap?branch=master)
+It's "heatmap77" now, after 16 years of just being "heatmap.py".
+It needed a unique name for PyPi. The 77 doesn't mean anything,
+it's just short, easy, unique, and I think it sounds cool.
+
